@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <head>
+  <meta charset="UTF-8">
+  <title>Deep State-based Model</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#157878">
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/cayman.css">
+
+  <!--
+   Maybe solving equation display problem
+  -->
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({ TeX: { equationNumbers: { autoNumber: "all" } } }); </script>
+       <script type="text/x-mathjax-config">
+         MathJax.Hub.Config({
+           tex2jax: {
+             inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+             displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+             processEscapes: true
+           },
+           "HTML-CSS": { availableFonts: ["TeX"] }
+         });
+       </script>
+ <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+</head>
+
+
+  <body>
+    <section class="page-header">
+  <h1 class="project-name">Deep State-based Model </h1>
+  <h2 class="project-tagline"></h2>
+  <!--
+  <a href="#" class="btn">View on GitHub</a>
+  <a href="#" class="btn">Download .zip</a>
+  <a href="#" class="btn">Download .tar.gz</a>
+  -->
+</section>
+
+
+    <section class="main-content">
+      
+      <h2>Recurrent Neural Network</h2>
+<p class="meta">23 May 2017</p>
+
+<h1>Basic</h1>
+<p>In contrast with densely connected neural network or <a href="https://keeperovswords.github.io/DeepConvolutionNetwork/main/2017/04/11/deep-learning.html">Convolution Neural Network</a>, the recurrent neural network delivers a big variety in deep learning model. Let’s have a essential picture of this model at first. RNN is a kind of <strong>State-Space Model</strong> that has the following structure</p>
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/state-space-model.png" width="65%" />
+  <div class="figcaption">a state space model</div>
+</div>
+
+<p>The left part of this diagram is the system model, where <script type="math/tex">a_n</script> is a vectorial function, <script type="math/tex">x_n</script> is the current value of state, <script type="math/tex">x_{n+1}</script> denotes the value of subsequent state, <script type="math/tex">z^{-1 y}</script> is a time delay unit and <script type="math/tex">s_n</script> is the dynamic noise. <script type="math/tex">x_{n+1}</script> has the following definition form:
+ \begin{equation}
+ x_{n+1} = a_n(x_n, s_n)
+ \end{equation} The right part is the measurement model in this state space system, where <script type="math/tex">v_n</script> the noise in measure  and <script type="math/tex">y_n</script> the observable output that defined as 
+ \begin{equation}
+ y_n = b_n(x_n, v_n)
+ \end{equation}
+ The evolution process varies over time is depicted as follows:</p>
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/state-space-model-evolution.png" width="75%" />
+  <div class="figcaption">Evolution of state space model over time steps</div>
+</div>
+
+<p>As we can see that the structure of this model takes the time steps into account. Actually this is the <a href="https://en.wikipedia.org/wiki/Recursive_Bayesian_estimation">Bayesian Filtering system</a>.  Our RNN has also the similar structure, whose evolution structure over time depicted as given by:</p>
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn.png" width="65%" />
+</div>
+
+<p>This structure depicts a interesting characters: the generated hidden state in previous state <script type="math/tex">h_{t-1}</script> is fed in the subsequent state <script type="math/tex">h_t</script>. The weight connecting the input and hidden state <script type="math/tex">W_{xh}</script> are reused in each time step <script type="math/tex">t</script>, at each time step there will be a output <script type="math/tex">y_t</script> generated. Formally this can be defined as follows:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{align}
+\begin{split}
+y_t &= W_{hy} h_t \\
+&= W_{hy}  f_w(h_{t-1}, x_t)\\
+&= W_{hy} \tanh(W_{hh} h_{t-1} + W_{xh}x_t)
+\end{split}
+\end{align} %]]></script>
+
+<p>When this model works over time steps, the context information (or prior information) in hidden neurons will be stored and passed in the next time step so that learning task that extends over a time period can be performed.</p>
+
+<h1>Image Captioning</h1>
+<p>As a brief introduction of the RNN’s structure was given. Here is an example that uses this model to caption a image. Image captioning means, say, you give a image to a model. This model learns the saliencies firstly. After running our model with this saliencies you’ll get a consice description about what’s going on in this given image.  For image captioning we need extra information that represents the image to be captioned. This information can be learned by other learning model, i.e. convolution neural network. The captioning vocabulary consists of string library, but for simplifying the learning process this vocabulary is converted in to integers that can be easily handled as vectors. At the test time we get a bunch of integers as return results, then we decode it into the original word string  correspondingly.</p>
+
+<h2>Training Stage</h2>
+<p>At training time features of images are trained at first by convolution network. These features are projected with this <script type="math/tex">p(f,w)</script> affine function to initial hidden state of our network. The vocabulary indexes are coded in a word embedding layer that maps the word to matrix that we can perform our for- and -backward propagation numerically. The training caption data  consists of a image looks like as follows:</p>
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn_train.png" width="80%" />
+</div>
+<h2>Training Stage</h2>
+
+<p>Each caption is tagged with some extra information likes <script type="math/tex">% <![CDATA[
+<START> %]]></script> and <script type="math/tex">% <![CDATA[
+<END> %]]></script> tokens. All the captions vocabularies are handled as matrix, cause we can’t use them directly, say for instance,  in forward propagation flow.
+During the training the weight of corresponding words will be updated, which also reflects the distribution of vocabularies. Also at each time step the last hidden state is used to forward propagate the “context information” over time steps. This context information implies the potential connections in original training data. The word score corresponding to features are calculated in a affine layer and fed into softmax layer to calculate the loss function. The yellow arrow indicates the direction of back propagation. The whole training task is actually not so complicated. The normal <a href="https://keeperovswords.github.io/Optimization/">update rules</a> can also be used for updating the parameters here. The back progapation works symetrically as we do in normal case.</p>
+
+<h2>Test Stage</h2>
+
+<p>The test process is shown in the figure below. The feature conversion is just same as we did in training process. Now the input to our model is little different. At the beginning of test the first word feed to model is <script type="math/tex">% <![CDATA[
+<START> %]]></script> token.  The feature will be used in and combined with the hidden state. The rest stays same as in training state excpet the last step, at which we will get a word that has the maximal score. The word with maximal score is stored in captions vectors and used in subsequent iterations. After iterations the caption vectors will be returned and decoded in corresponding text. The procedure repeats over all the features. The output is just then a couple of words that we got in each time step.</p>
+
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn_test.png" width="80%" />
+</div>
+
+<h1>Pros vs. Cons</h1>
+<p>The workflow of this model in the area of image caption has been briefly presented. The hidden state are always newly generated as training. So as the error propagates backwards, this should be summed in total time steps but initial hidden state. The content information in previous neurons has been stored and forwards propagated via hidden state and the relation between features and words over vocabulary is mapped in the the affine layer and the corresponding importance is reflected in the vocabulary weights in this layer. Here the vocabulary is also important, or in other words the distribution of words in vocabulary is very essential to caption images. If the words are not good selected enough, the caption will be meanless of human.</p>
+
+<p>The structure of this model is quite simple to understand. Each hidden state just stacked over time steps that lurks the potential problem. Let’s recap our training process again. We feed our features as inputs to RNN, and combined the non-linearity, infinitesimal changes to update our parameters over time distance. This may do not effect the training or be neglectable. Or if we have a big change in inputs that are unfortunately not measured by the gradient as time changes. This so-called <a href="https://en.wikipedia.org/wiki/Vanishing_gradient_problem">Vanishing-gradients</a>  problem downgrades the learning that has long-term dependencies in gradient-based models.For solving this problem we can use non-linear sequential sequence state model like <a href="/main/2017/06/02/long-short-term-memory.html">Long Short Term Memory</a></p>
+
+
+
+      <footer class="site-footer">
+  <span class="site-footer-owner"><a href="http://localhost:4000">Deep State-based Model</a> is maintained by <a href="https://github.com/keeperovswords">Jian Xi</a>.</span>
+  <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+</footer>
+
+
+    </section>
+
+  </body>
+</html>

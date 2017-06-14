@@ -1,0 +1,23 @@
+
+
+# Site settings
+title: Deep State-based Model
+email: keeperovsword@gmail.com
+description: > # this means to ignore newlines until "baseurl:"
+  RNN, LSTM
+  Keyword: Computer Vision, Image captioning, State Space Model
+baseurl: "" 
+url:     "" 
+
+author:
+  name:       Jian Xi
+  url:        https://github.com/keeperovswords
+
+# Build settings
+markdown: kramdown
+theme: minima
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+

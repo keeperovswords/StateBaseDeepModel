@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <head>
+  <meta charset="UTF-8">
+  <title>Deep State-based Model</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#157878">
+  <link rel="stylesheet" href="/css/normalize.css">
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="/css/cayman.css">
+
+  <!--
+   Maybe solving equation display problem
+  -->
+  <script type="text/x-mathjax-config"> MathJax.Hub.Config({ TeX: { equationNumbers: { autoNumber: "all" } } }); </script>
+       <script type="text/x-mathjax-config">
+         MathJax.Hub.Config({
+           tex2jax: {
+             inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+             displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+             processEscapes: true
+           },
+           "HTML-CSS": { availableFonts: ["TeX"] }
+         });
+       </script>
+ <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+</head>
+
+
+  <body>
+    <section class="page-header">
+  <h1 class="project-name">Deep State-based Model </h1>
+  <h2 class="project-tagline"></h2>
+  <!--
+  <a href="#" class="btn">View on GitHub</a>
+  <a href="#" class="btn">Download .zip</a>
+  <a href="#" class="btn">Download .tar.gz</a>
+  -->
+</section>
+
+
+    <section class="main-content">
+      
+      <h2>Long Short Term Memory</h2>
+<p class="meta">02 Jun 2017</p>
+
+<h1>Introduction</h1>
+<p>Long Short Term Memory (LSTM) differentiates with RNN only by holding a <strong>cell state</strong> in each time step. Furthermore the hidden state will be split in four single cell states. These cell states have the ability to add or remove information during time steps, which are organized by special non-linear structures called <strong>gates</strong>. Let’ walk it though out.</p>
+
+<h1>The working flow in LSTM</h1>
+<p>The evolution of LSTM over time steps is shown as follows:</p>
+<div class="fig figcenter fighighlight">
+  <img src="http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/lstm.png" width="100%" />
+</div>
+
+<p>The <script type="math/tex">f(.,w)</script> is an affine operation that calculates the activation vectors. As it depicts here, the activation signals have been split into four slices: input gate <script type="math/tex">i</script>, forget gate <script type="math/tex">f</script>, output gate <script type="math/tex">o</script> and go through gate <script type="math/tex">g</script>. The <script type="math/tex">i, f, o</script> gates are kind of sigmoid functions that maps its inputs to interval <script type="math/tex">[0, 1]</script> and  go through gate uses <script type="math/tex">\tanh(.)</script> to squashes its inputs to interval <script type="math/tex">[-1, 1]</script> so that the output looks more centralized.</p>
+
+<h2>Forward phase</h2>
+<p>In forward propagation phase the input gate <script type="math/tex">i</script> decides what we want to process and go through gate <script type="math/tex">g</script> determines how much signal we want to let it through. The forget gate <script type="math/tex">f</script> gives signals (here previous cell state <script type="math/tex">c_0</script>) the possibility that it always has been taken into account in next cell state <script type="math/tex">c_1</script>. The squashed new state <script type="math/tex">c_1</script> is merged with output gate <script type="math/tex">o</script>’s outputs for generating new hidden state <script type="math/tex">h_1</script>.</p>
+
+<p>This forward process can be abstracted as the following equations:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}
+\begin{split}
+h_n &= o_{n-1} \odot \tanh(c_n)  \\
+    &= o_{n-1} \odot \tanh(f_{n-1} \odot c_{n-1}) + i_{n-1} \odot g_{n-1}, \\ 
+\end{split}
+\end{equation} %]]></script>
+
+<p>where <script type="math/tex">\odot</script> is element-wise product and the gates are just subslices of activation vectors like <script type="math/tex">o_{n-1} = sigmoid(act[:,2,:])</script> and <script type="math/tex">g_{n-1} = \tanh(act[:,3,:])</script> etc. <script type="math/tex">n</script> denotes the time step. The act here means the activation vectors we got from the <script type="math/tex">f(.w)</script> function. As forward propagation starts, the initial cell state <script type="math/tex">c_0</script> is initialized as same size of hidden state <script type="math/tex">h_0</script> then all the time evolutions work out iteratively through. Here we also used <script type="math/tex">L2</script>-Norm as regularization penalty like we always do in neural networks.</p>
+
+<h2>Backward phase</h2>
+<p>In Backward propagatoin phase, the gradients of cell state and hidden state are back propagated in the symmetrical order that got forward propagated. Assume we have the derivate of <script type="math/tex">c_3</script> and <script type="math/tex">h_3</script> as <script type="math/tex">d_{c3}</script> and <script type="math/tex">d_{h3}</script>, now let’s back propagate the errors.
+Keep in mind that what you calculated in forward propagation should be cached for back propagation and all gradient-flows has exact the invertible direction of forward propagation. Taken <script type="math/tex">d_{h3}</script> and next cell state <script type="math/tex">c_3</script> we got the gradient of previous output gate  as follows:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}
+\begin{split}
+d_{o_2} &=  d_{h3} \times \tanh(c_3) \times  \nabla_{sigmoid(o_2)},\\
+&=  \underbrace{d_{h3} \times \tanh(c_3)}_{derivate\ of\ h_3\ backward} \underbrace{\times}_{distributes\ the\ gradients} \underbrace{o_2 \times ( 1 - o_2),}_{numerical\ derivative\ of\ sigmoid\ for\ output gate}\\
+\end{split}
+\end{equation} %]]></script>
+
+<p>from which we got <script type="math/tex">o_2</script> in the diagram above. Be careful that we did not use <script type="math/tex">d_{c3}</script> for gradient of <script type="math/tex">o_2</script> cause that does not contribute to calculate the <script type="math/tex">c_3</script>. In contrast to this the gradient of next hidden state <script type="math/tex">d_{h3}</script> is a little bit complicated to back propagate. For getting <script type="math/tex">h_3</script> we used <script type="math/tex">c_2</script> and <script type="math/tex">o_2</script>, <script type="math/tex">c_2</script> is derived from <script type="math/tex">c_1, f, i, g</script>, here takes more attention. <script type="math/tex">d_{sum_c}</script> in above figure coalesces the two flows from cell state <script type="math/tex">d_{c3}</script> and <script type="math/tex">d_{h3}</script>, it’s merged as follows:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}
+\begin{split}
+d_{sum_c} &= d_{h3} \times o_2 \times \nabla_{\tanh(c_3)} + d_{c3} \\
+          &= d_{h3} \times o_2 \times (1 - \tanh(c_3)^2) + d_{c3},  \\
+\end{split}
+\end{equation} %]]></script>
+
+<p>after this the gradient flow will be  back propagated  to <script type="math/tex">f, i, g</script> continuously. The derivate of forget gate <script type="math/tex">f_2</script> calculated as:</p>
+
+<script type="math/tex; mode=display">% <![CDATA[
+\begin{equation}
+\begin{split}
+d_{f2} &= d_{sum_c}  \times \nabla_{sigmoid(f_2)} \times c_1 \\
+       &= d_{sum_c}  \times f_2 \times ( 1 - f_2) \times c_1. \\
+\end{split}
+\end{equation} %]]></script>
+
+<p>In the same way we got derivate of <script type="math/tex">i_2, g_2</script> separately as follow:</p>
+
+<script type="math/tex; mode=display">\begin{equation}
+d_{i2} = d_{sum_c}  \times i_2 \times ( 1 - i_2) \times g_2, \\
+\end{equation}</script>
+
+<script type="math/tex; mode=display">\begin{equation}
+d_{g2} = d_{sum_c}  \times ( 1 - g_2^2) \times i_2. \\
+\end{equation}</script>
+
+<p>As so far we can concatenate all the gate derivatives for assembling the derivate of activation vectors, from which we’ll get the derivative of hidden state’s weight, input to hidden state’s weight as well as the derivate of initial cell state and bias, which is just a couple of matrix multiplication and will not be further explained here.</p>
+
+<p>For overfitting a model we used the same setting as in RNN, the loss of LSTM changes very mildly than RNN. Although the captioning results of both models are nearly same, but the LSTM has an advantage for again Vanishing-gradient problem.</p>
+
+<h1>Conclusion</h1>
+<p>Because of the long dependenciy problem, RNN learns not appropriately as we anticipated. In order to solve this problem we introduce a cell state for dispatching the long dependency information in such a way that the gradeint vanishes not dramtically quick. So the learn process is better than in RNN. Apart from this property, what RNN does, LSTM is also suitable for those case.</p>
+
+
+
+      <footer class="site-footer">
+  <span class="site-footer-owner"><a href="http://localhost:4000">Deep State-based Model</a> is maintained by <a href="https://github.com/keeperovswords">Jian Xi</a>.</span>
+  <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a>.</span>
+</footer>
+
+
+    </section>
+
+  </body>
+</html>

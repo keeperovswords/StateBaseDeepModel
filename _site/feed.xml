@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.4.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2017-06-14T19:34:15+02:00</updated><id>http://localhost:4000/</id><title type="html">Deep State-based Model</title><subtitle>RNN, LSTM Keyword: Computer Vision, Image captioning, State Space Model
+</subtitle><author><name>Jian Xi</name></author><entry><title type="html">Long Short Term Memory</title><link href="http://localhost:4000/main/2017/06/02/long-short-term-memory.html" rel="alternate" type="text/html" title="Long Short Term Memory" /><published>2017-06-02T16:25:38+02:00</published><updated>2017-06-02T16:25:38+02:00</updated><id>http://localhost:4000/main/2017/06/02/long-short-term-memory</id><content type="html" xml:base="http://localhost:4000/main/2017/06/02/long-short-term-memory.html">&lt;h1&gt;Introduction&lt;/h1&gt;
+&lt;p&gt;Long Short Term Memory (LSTM) differentiates with RNN only by holding a &lt;strong&gt;cell state&lt;/strong&gt; in each time step. Furthermore the hidden state will be split in four single cell states. These cell states have the ability to add or remove information during time steps, which are organized by special non-linear structures called &lt;strong&gt;gates&lt;/strong&gt;. Let’ walk it though out.&lt;/p&gt;
+
+&lt;h1&gt;The working flow in LSTM&lt;/h1&gt;
+&lt;p&gt;The evolution of LSTM over time steps is shown as follows:&lt;/p&gt;
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/lstm.png&quot; width=&quot;100%&quot; /&gt;
+&lt;/div&gt;
+
+&lt;p&gt;The &lt;script type=&quot;math/tex&quot;&gt;f(.,w)&lt;/script&gt; is an affine operation that calculates the activation vectors. As it depicts here, the activation signals have been split into four slices: input gate &lt;script type=&quot;math/tex&quot;&gt;i&lt;/script&gt;, forget gate &lt;script type=&quot;math/tex&quot;&gt;f&lt;/script&gt;, output gate &lt;script type=&quot;math/tex&quot;&gt;o&lt;/script&gt; and go through gate &lt;script type=&quot;math/tex&quot;&gt;g&lt;/script&gt;. The &lt;script type=&quot;math/tex&quot;&gt;i, f, o&lt;/script&gt; gates are kind of sigmoid functions that maps its inputs to interval &lt;script type=&quot;math/tex&quot;&gt;[0, 1]&lt;/script&gt; and  go through gate uses &lt;script type=&quot;math/tex&quot;&gt;\tanh(.)&lt;/script&gt; to squashes its inputs to interval &lt;script type=&quot;math/tex&quot;&gt;[-1, 1]&lt;/script&gt; so that the output looks more centralized.&lt;/p&gt;
+
+&lt;h2&gt;Forward phase&lt;/h2&gt;
+&lt;p&gt;In forward propagation phase the input gate &lt;script type=&quot;math/tex&quot;&gt;i&lt;/script&gt; decides what we want to process and go through gate &lt;script type=&quot;math/tex&quot;&gt;g&lt;/script&gt; determines how much signal we want to let it through. The forget gate &lt;script type=&quot;math/tex&quot;&gt;f&lt;/script&gt; gives signals (here previous cell state &lt;script type=&quot;math/tex&quot;&gt;c_0&lt;/script&gt;) the possibility that it always has been taken into account in next cell state &lt;script type=&quot;math/tex&quot;&gt;c_1&lt;/script&gt;. The squashed new state &lt;script type=&quot;math/tex&quot;&gt;c_1&lt;/script&gt; is merged with output gate &lt;script type=&quot;math/tex&quot;&gt;o&lt;/script&gt;’s outputs for generating new hidden state &lt;script type=&quot;math/tex&quot;&gt;h_1&lt;/script&gt;.&lt;/p&gt;
+
+&lt;p&gt;This forward process can be abstracted as the following equations:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{equation}
+\begin{split}
+h_n &amp;= o_{n-1} \odot \tanh(c_n)  \\
+    &amp;= o_{n-1} \odot \tanh(f_{n-1} \odot c_{n-1}) + i_{n-1} \odot g_{n-1}, \\ 
+\end{split}
+\end{equation} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;where &lt;script type=&quot;math/tex&quot;&gt;\odot&lt;/script&gt; is element-wise product and the gates are just subslices of activation vectors like &lt;script type=&quot;math/tex&quot;&gt;o_{n-1} = sigmoid(act[:,2,:])&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;g_{n-1} = \tanh(act[:,3,:])&lt;/script&gt; etc. &lt;script type=&quot;math/tex&quot;&gt;n&lt;/script&gt; denotes the time step. The act here means the activation vectors we got from the &lt;script type=&quot;math/tex&quot;&gt;f(.w)&lt;/script&gt; function. As forward propagation starts, the initial cell state &lt;script type=&quot;math/tex&quot;&gt;c_0&lt;/script&gt; is initialized as same size of hidden state &lt;script type=&quot;math/tex&quot;&gt;h_0&lt;/script&gt; then all the time evolutions work out iteratively through. Here we also used &lt;script type=&quot;math/tex&quot;&gt;L2&lt;/script&gt;-Norm as regularization penalty like we always do in neural networks.&lt;/p&gt;
+
+&lt;h2&gt;Backward phase&lt;/h2&gt;
+&lt;p&gt;In Backward propagatoin phase, the gradients of cell state and hidden state are back propagated in the symmetrical order that got forward propagated. Assume we have the derivate of &lt;script type=&quot;math/tex&quot;&gt;c_3&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;h_3&lt;/script&gt; as &lt;script type=&quot;math/tex&quot;&gt;d_{c3}&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;d_{h3}&lt;/script&gt;, now let’s back propagate the errors.
+Keep in mind that what you calculated in forward propagation should be cached for back propagation and all gradient-flows has exact the invertible direction of forward propagation. Taken &lt;script type=&quot;math/tex&quot;&gt;d_{h3}&lt;/script&gt; and next cell state &lt;script type=&quot;math/tex&quot;&gt;c_3&lt;/script&gt; we got the gradient of previous output gate  as follows:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{equation}
+\begin{split}
+d_{o_2} &amp;=  d_{h3} \times \tanh(c_3) \times  \nabla_{sigmoid(o_2)},\\
+&amp;=  \underbrace{d_{h3} \times \tanh(c_3)}_{derivate\ of\ h_3\ backward} \underbrace{\times}_{distributes\ the\ gradients} \underbrace{o_2 \times ( 1 - o_2),}_{numerical\ derivative\ of\ sigmoid\ for\ output gate}\\
+\end{split}
+\end{equation} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;from which we got &lt;script type=&quot;math/tex&quot;&gt;o_2&lt;/script&gt; in the diagram above. Be careful that we did not use &lt;script type=&quot;math/tex&quot;&gt;d_{c3}&lt;/script&gt; for gradient of &lt;script type=&quot;math/tex&quot;&gt;o_2&lt;/script&gt; cause that does not contribute to calculate the &lt;script type=&quot;math/tex&quot;&gt;c_3&lt;/script&gt;. In contrast to this the gradient of next hidden state &lt;script type=&quot;math/tex&quot;&gt;d_{h3}&lt;/script&gt; is a little bit complicated to back propagate. For getting &lt;script type=&quot;math/tex&quot;&gt;h_3&lt;/script&gt; we used &lt;script type=&quot;math/tex&quot;&gt;c_2&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;o_2&lt;/script&gt;, &lt;script type=&quot;math/tex&quot;&gt;c_2&lt;/script&gt; is derived from &lt;script type=&quot;math/tex&quot;&gt;c_1, f, i, g&lt;/script&gt;, here takes more attention. &lt;script type=&quot;math/tex&quot;&gt;d_{sum_c}&lt;/script&gt; in above figure coalesces the two flows from cell state &lt;script type=&quot;math/tex&quot;&gt;d_{c3}&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;d_{h3}&lt;/script&gt;, it’s merged as follows:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{equation}
+\begin{split}
+d_{sum_c} &amp;= d_{h3} \times o_2 \times \nabla_{\tanh(c_3)} + d_{c3} \\
+          &amp;= d_{h3} \times o_2 \times (1 - \tanh(c_3)^2) + d_{c3},  \\
+\end{split}
+\end{equation} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;after this the gradient flow will be  back propagated  to &lt;script type=&quot;math/tex&quot;&gt;f, i, g&lt;/script&gt; continuously. The derivate of forget gate &lt;script type=&quot;math/tex&quot;&gt;f_2&lt;/script&gt; calculated as:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{equation}
+\begin{split}
+d_{f2} &amp;= d_{sum_c}  \times \nabla_{sigmoid(f_2)} \times c_1 \\
+       &amp;= d_{sum_c}  \times f_2 \times ( 1 - f_2) \times c_1. \\
+\end{split}
+\end{equation} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;In the same way we got derivate of &lt;script type=&quot;math/tex&quot;&gt;i_2, g_2&lt;/script&gt; separately as follow:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\begin{equation}
+d_{i2} = d_{sum_c}  \times i_2 \times ( 1 - i_2) \times g_2, \\
+\end{equation}&lt;/script&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\begin{equation}
+d_{g2} = d_{sum_c}  \times ( 1 - g_2^2) \times i_2. \\
+\end{equation}&lt;/script&gt;
+
+&lt;p&gt;As so far we can concatenate all the gate derivatives for assembling the derivate of activation vectors, from which we’ll get the derivative of hidden state’s weight, input to hidden state’s weight as well as the derivate of initial cell state and bias, which is just a couple of matrix multiplication and will not be further explained here.&lt;/p&gt;
+
+&lt;p&gt;For overfitting a model we used the same setting as in RNN, the loss of LSTM changes very mildly than RNN. Although the captioning results of both models are nearly same, but the LSTM has an advantage for again Vanishing-gradient problem.&lt;/p&gt;
+
+&lt;h1&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;Because of the long dependenciy problem, RNN learns not appropriately as we anticipated. In order to solve this problem we introduce a cell state for dispatching the long dependency information in such a way that the gradeint vanishes not dramtically quick. So the learn process is better than in RNN. Apart from this property, what RNN does, LSTM is also suitable for those case.&lt;/p&gt;</content><author><name>Jian Xi</name></author><summary type="html">Introduction Long Short Term Memory (LSTM) differentiates with RNN only by holding a cell state in each time step. Furthermore the hidden state will be split in four single cell states. These cell states have the ability to add or remove information during time steps, which are organized by special non-linear structures called gates. Let’ walk it though out.</summary></entry><entry><title type="html">Recurrent Neural Network</title><link href="http://localhost:4000/main/2017/05/23/recurrent-neural-network.html" rel="alternate" type="text/html" title="Recurrent Neural Network" /><published>2017-05-23T15:15:28+02:00</published><updated>2017-05-23T15:15:28+02:00</updated><id>http://localhost:4000/main/2017/05/23/recurrent-neural-network</id><content type="html" xml:base="http://localhost:4000/main/2017/05/23/recurrent-neural-network.html">&lt;h1&gt;Basic&lt;/h1&gt;
+&lt;p&gt;In contrast with densely connected neural network or &lt;a href=&quot;https://keeperovswords.github.io/DeepConvolutionNetwork/main/2017/04/11/deep-learning.html&quot;&gt;Convolution Neural Network&lt;/a&gt;, the recurrent neural network delivers a big variety in deep learning model. Let’s have a essential picture of this model at first. RNN is a kind of &lt;strong&gt;State-Space Model&lt;/strong&gt; that has the following structure&lt;/p&gt;
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/state-space-model.png&quot; width=&quot;65%&quot; /&gt;
+  &lt;div class=&quot;figcaption&quot;&gt;a state space model&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;p&gt;The left part of this diagram is the system model, where &lt;script type=&quot;math/tex&quot;&gt;a_n&lt;/script&gt; is a vectorial function, &lt;script type=&quot;math/tex&quot;&gt;x_n&lt;/script&gt; is the current value of state, &lt;script type=&quot;math/tex&quot;&gt;x_{n+1}&lt;/script&gt; denotes the value of subsequent state, &lt;script type=&quot;math/tex&quot;&gt;z^{-1 y}&lt;/script&gt; is a time delay unit and &lt;script type=&quot;math/tex&quot;&gt;s_n&lt;/script&gt; is the dynamic noise. &lt;script type=&quot;math/tex&quot;&gt;x_{n+1}&lt;/script&gt; has the following definition form:
+ \begin{equation}
+ x_{n+1} = a_n(x_n, s_n)
+ \end{equation} The right part is the measurement model in this state space system, where &lt;script type=&quot;math/tex&quot;&gt;v_n&lt;/script&gt; the noise in measure  and &lt;script type=&quot;math/tex&quot;&gt;y_n&lt;/script&gt; the observable output that defined as 
+ \begin{equation}
+ y_n = b_n(x_n, v_n)
+ \end{equation}
+ The evolution process varies over time is depicted as follows:&lt;/p&gt;
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/state-space-model-evolution.png&quot; width=&quot;75%&quot; /&gt;
+  &lt;div class=&quot;figcaption&quot;&gt;Evolution of state space model over time steps&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;p&gt;As we can see that the structure of this model takes the time steps into account. Actually this is the &lt;a href=&quot;https://en.wikipedia.org/wiki/Recursive_Bayesian_estimation&quot;&gt;Bayesian Filtering system&lt;/a&gt;.  Our RNN has also the similar structure, whose evolution structure over time depicted as given by:&lt;/p&gt;
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn.png&quot; width=&quot;65%&quot; /&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This structure depicts a interesting characters: the generated hidden state in previous state &lt;script type=&quot;math/tex&quot;&gt;h_{t-1}&lt;/script&gt; is fed in the subsequent state &lt;script type=&quot;math/tex&quot;&gt;h_t&lt;/script&gt;. The weight connecting the input and hidden state &lt;script type=&quot;math/tex&quot;&gt;W_{xh}&lt;/script&gt; are reused in each time step &lt;script type=&quot;math/tex&quot;&gt;t&lt;/script&gt;, at each time step there will be a output &lt;script type=&quot;math/tex&quot;&gt;y_t&lt;/script&gt; generated. Formally this can be defined as follows:&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;% &lt;![CDATA[
+\begin{align}
+\begin{split}
+y_t &amp;= W_{hy} h_t \\
+&amp;= W_{hy}  f_w(h_{t-1}, x_t)\\
+&amp;= W_{hy} \tanh(W_{hh} h_{t-1} + W_{xh}x_t)
+\end{split}
+\end{align} %]]&gt;&lt;/script&gt;
+
+&lt;p&gt;When this model works over time steps, the context information (or prior information) in hidden neurons will be stored and passed in the next time step so that learning task that extends over a time period can be performed.&lt;/p&gt;
+
+&lt;h1&gt;Image Captioning&lt;/h1&gt;
+&lt;p&gt;As a brief introduction of the RNN’s structure was given. Here is an example that uses this model to caption a image. Image captioning means, say, you give a image to a model. This model learns the saliencies firstly. After running our model with this saliencies you’ll get a consice description about what’s going on in this given image.  For image captioning we need extra information that represents the image to be captioned. This information can be learned by other learning model, i.e. convolution neural network. The captioning vocabulary consists of string library, but for simplifying the learning process this vocabulary is converted in to integers that can be easily handled as vectors. At the test time we get a bunch of integers as return results, then we decode it into the original word string  correspondingly.&lt;/p&gt;
+
+&lt;h2&gt;Training Stage&lt;/h2&gt;
+&lt;p&gt;At training time features of images are trained at first by convolution network. These features are projected with this &lt;script type=&quot;math/tex&quot;&gt;p(f,w)&lt;/script&gt; affine function to initial hidden state of our network. The vocabulary indexes are coded in a word embedding layer that maps the word to matrix that we can perform our for- and -backward propagation numerically. The training caption data  consists of a image looks like as follows:&lt;/p&gt;
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn_train.png&quot; width=&quot;80%&quot; /&gt;
+&lt;/div&gt;
+&lt;h2&gt;Training Stage&lt;/h2&gt;
+
+&lt;p&gt;Each caption is tagged with some extra information likes &lt;script type=&quot;math/tex&quot;&gt;% &lt;![CDATA[
+&lt;START&gt; %]]&gt;&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;% &lt;![CDATA[
+&lt;END&gt; %]]&gt;&lt;/script&gt; tokens. All the captions vocabularies are handled as matrix, cause we can’t use them directly, say for instance,  in forward propagation flow.
+During the training the weight of corresponding words will be updated, which also reflects the distribution of vocabularies. Also at each time step the last hidden state is used to forward propagate the “context information” over time steps. This context information implies the potential connections in original training data. The word score corresponding to features are calculated in a affine layer and fed into softmax layer to calculate the loss function. The yellow arrow indicates the direction of back propagation. The whole training task is actually not so complicated. The normal &lt;a href=&quot;https://keeperovswords.github.io/Optimization/&quot;&gt;update rules&lt;/a&gt; can also be used for updating the parameters here. The back progapation works symetrically as we do in normal case.&lt;/p&gt;
+
+&lt;h2&gt;Test Stage&lt;/h2&gt;
+
+&lt;p&gt;The test process is shown in the figure below. The feature conversion is just same as we did in training process. Now the input to our model is little different. At the beginning of test the first word feed to model is &lt;script type=&quot;math/tex&quot;&gt;% &lt;![CDATA[
+&lt;START&gt; %]]&gt;&lt;/script&gt; token.  The feature will be used in and combined with the hidden state. The rest stays same as in training state excpet the last step, at which we will get a word that has the maximal score. The word with maximal score is stored in captions vectors and used in subsequent iterations. After iterations the caption vectors will be returned and decoded in corresponding text. The procedure repeats over all the features. The output is just then a couple of words that we got in each time step.&lt;/p&gt;
+
+&lt;div class=&quot;fig figcenter fighighlight&quot;&gt;
+  &lt;img src=&quot;http://github.com/pages/keeperovswords/StateBaseDeepModel/assets/rnn_test.png&quot; width=&quot;80%&quot; /&gt;
+&lt;/div&gt;
+
+&lt;h1&gt;Pros vs. Cons&lt;/h1&gt;
+&lt;p&gt;The workflow of this model in the area of image caption has been briefly presented. The hidden state are always newly generated as training. So as the error propagates backwards, this should be summed in total time steps but initial hidden state. The content information in previous neurons has been stored and forwards propagated via hidden state and the relation between features and words over vocabulary is mapped in the the affine layer and the corresponding importance is reflected in the vocabulary weights in this layer. Here the vocabulary is also important, or in other words the distribution of words in vocabulary is very essential to caption images. If the words are not good selected enough, the caption will be meanless of human.&lt;/p&gt;
+
+&lt;p&gt;The structure of this model is quite simple to understand. Each hidden state just stacked over time steps that lurks the potential problem. Let’s recap our training process again. We feed our features as inputs to RNN, and combined the non-linearity, infinitesimal changes to update our parameters over time distance. This may do not effect the training or be neglectable. Or if we have a big change in inputs that are unfortunately not measured by the gradient as time changes. This so-called &lt;a href=&quot;https://en.wikipedia.org/wiki/Vanishing_gradient_problem&quot;&gt;Vanishing-gradients&lt;/a&gt;  problem downgrades the learning that has long-term dependencies in gradient-based models.For solving this problem we can use non-linear sequential sequence state model like &lt;a href=&quot;/main/2017/06/02/long-short-term-memory.html&quot;&gt;Long Short Term Memory&lt;/a&gt;&lt;/p&gt;</content><author><name>Jian Xi</name></author><summary type="html">Basic In contrast with densely connected neural network or Convolution Neural Network, the recurrent neural network delivers a big variety in deep learning model. Let’s have a essential picture of this model at first. RNN is a kind of State-Space Model that has the following structure a state space model</summary></entry></feed>
